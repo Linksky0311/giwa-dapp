@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "web3-tools": {
+      "source": "noditlabs/skills",
+      "sourceType": "github",
+      "skillPath": "skills/web3-tools/SKILL.md",
+      "computedHash": "11a1c1d696c6d4c398073a1090dc1a90b6666cc508d8a96c641dd57504924ea7"
+    }
+  }
+}

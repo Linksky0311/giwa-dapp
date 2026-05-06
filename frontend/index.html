@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>☕ GIWA Cafe — K-USDC 결제 DApp</title>
+  <style>
+    :root {
+      --bg: #0f0f13;
+      --card: #1a1a24;
+      --border: #2a2a3a;
+      --accent: #6366f1;
+      --accent2: #22d3ee;
+      --green: #4ade80;
+      --red: #f87171;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 2rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--card);
+    }
+    .logo { font-size: 1.4rem; font-weight: 700; }
+    .logo span { color: var(--accent); }
+    #connectBtn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 0.5rem 1.2rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    #connectBtn:hover { opacity: 0.85; }
+    #walletInfo {
+      font-size: 0.85rem;
+      color: var(--muted);
+      display: none;
+    }
+
+    /* ── Main Layout ── */
+    main {
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+    @media (max-width: 650px) { main { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+    }
+    .card h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .badge {
+      font-size: 0.7rem;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 999px;
+      padding: 2px 8px;
+    }
+    .badge.green { background: var(--green); color: #000; }
+
+    /* ── Info Grid ── */
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    .info-box {
+      background: rgba(99,102,241,0.08);
+      border: 1px solid rgba(99,102,241,0.2);
+      border-radius: 10px;
+      padding: 0.75rem;
+    }
+    .info-box .label { font-size: 0.7rem; color: var(--muted); margin-bottom: 0.25rem; }
+    .info-box .value { font-size: 1.1rem; font-weight: 700; color: var(--accent2); }
+
+    /* ── Form ── */
+    .form-group { margin-bottom: 1rem; }
+    label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 0.4rem; }
+    input, select {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.6rem 0.8rem;
+      color: var(--text);
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus, select:focus { border-color: var(--accent); }
+    input[readonly] { color: var(--muted); cursor: not-allowed; }
+
+    .btn {
+      width: 100%;
+      padding: 0.75rem;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .btn:hover { opacity: 0.9; }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: linear-gradient(135deg, var(--accent2), #0ea5e9); color: #000; }
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      margin-top: 0.5rem;
+    }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Log ── */
+    .log {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem;
+      font-size: 0.78rem;
+      font-family: monospace;
+      max-height: 200px;
+      overflow-y: auto;
+      color: var(--muted);
+    }
+    .log .entry { margin-bottom: 0.4rem; line-height: 1.5; }
+    .log .ok { color: var(--green); }
+    .log .err { color: var(--red); }
+    .log .info { color: var(--accent2); }
+
+    /* ── Menu ── */
+    .menu-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 0.6rem;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .menu-item:hover, .menu-item.selected {
+      border-color: var(--accent);
+      background: rgba(99,102,241,0.08);
+    }
+    .menu-item .name { font-weight: 600; font-size: 0.9rem; }
+    .menu-item .desc { font-size: 0.75rem; color: var(--muted); }
+    .menu-item .price { font-weight: 700; color: var(--accent2); }
+
+    /* ── Tx History ── */
+    .tx-item {
+      border-bottom: 1px solid var(--border);
+      padding: 0.6rem 0;
+      font-size: 0.82rem;
+    }
+    .tx-item:last-child { border-bottom: none; }
+    .tx-item .tx-top { display: flex; justify-content: space-between; }
+    .tx-item .tx-amount { font-weight: 700; color: var(--accent2); }
+    .tx-item .tx-method { color: var(--muted); font-size: 0.75rem; }
+    .tx-item .tx-hash { color: var(--accent); font-size: 0.75rem; word-break: break-all; }
+
+    .full-width { grid-column: 1 / -1; }
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      background: var(--red);
+    }
+    .status-dot.connected { background: var(--green); }
+    .divider { height: 1px; background: var(--border); margin: 0.75rem 0; }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header>
+  <div class="logo">☕ GIWA <span>Cafe</span></div>
+  <div style="display:flex;align-items:center;gap:1rem;">
+    <div id="walletInfo">
+      <span class="status-dot connected" style="margin-right:4px;"></span>
+      <span id="shortAddr">--</span> &nbsp;|&nbsp;
+      <span id="kusdcBalance">-- KUSDC</span>
+    </div>
+    <button id="connectBtn" onclick="connectWallet()">지갑 연결</button>
+  </div>
+</header>
+
+<!-- ── Main ── -->
+<main>
+
+  <!-- 메뉴 선택 -->
+  <div class="card">
+    <h2>🍰 메뉴 선택</h2>
+    <div id="menuList">
+      <div class="menu-item selected" data-price="4500" onclick="selectMenu(this)">
+        <div><div class="name">아메리카노</div><div class="desc">GIWA 체인의 맛 ☕</div></div>
+        <div class="price">4,500 KUSDC</div>
+      </div>
+      <div class="menu-item" data-price="5500" onclick="selectMenu(this)">
+        <div><div class="name">카페라떼</div><div class="desc">부드러운 밀크폼 🥛</div></div>
+        <div class="price">5,500 KUSDC</div>
+      </div>
+      <div class="menu-item" data-price="6500" onclick="selectMenu(this)">
+        <div><div class="name">카라멜 마끼아또</div><div class="desc">달콤 쌉쌀 🍮</div></div>
+        <div class="price">6,500 KUSDC</div>
+      </div>
+      <div class="menu-item" data-price="7000" onclick="selectMenu(this)">
+        <div><div class="name">블록체인 스무디</div><div class="desc">분산화된 과일 블렌드 🍓</div></div>
+        <div class="price">7,000 KUSDC</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="info-grid">
+      <div class="info-box">
+        <div class="label">선택 금액</div>
+        <div class="value" id="selectedAmount">4,500</div>
+      </div>
+      <div class="info-box">
+        <div class="label">수수료 (2.5%)</div>
+        <div class="value" id="feeAmount">112</div>
+      </div>
+      <div class="info-box">
+        <div class="label">가맹점 수취</div>
+        <div class="value" id="merchantAmount">4,388</div>
+      </div>
+      <div class="info-box">
+        <div class="label">내 잔액</div>
+        <div class="value" id="myBalance">--</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 결제 -->
+  <div class="card">
+    <h2>💳 결제</h2>
+
+    <!-- 방식 A -->
+    <div style="margin-bottom:1.2rem;">
+      <div style="font-size:0.82rem;color:var(--muted);margin-bottom:0.5rem;">
+        🅐 방식 A — ERC-20 승인 후 결제
+      </div>
+      <button class="btn btn-primary" onclick="payMethodA()" id="btnPayA" disabled>
+        Approve → Pay
+      </button>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- 방식 B -->
+    <div style="margin-bottom:1.2rem;">
+      <div style="font-size:0.82rem;color:var(--muted);margin-bottom:0.5rem;">
+        🅑 방식 B — ERC-3009 서명 결제 (approve 불필요)
+      </div>
+      <button class="btn btn-secondary" onclick="payMethodB()" id="btnPayB" disabled>
+        Sign & Pay (Gasless Approve)
+      </button>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- 민팅 (테스트용) -->
+    <div>
+      <div style="font-size:0.82rem;color:var(--muted);margin-bottom:0.5rem;">
+        🪙 테스트 토큰 민팅
+      </div>
+      <div style="display:flex;gap:0.5rem;">
+        <input type="number" id="mintAmount" value="10000" min="1" style="flex:1;" />
+        <button class="btn btn-ghost" style="width:auto;padding:0 1rem;" onclick="mintTokens()">Mint</button>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- 로그 -->
+    <div style="font-size:0.78rem;color:var(--muted);margin-bottom:0.4rem;">📋 트랜잭션 로그</div>
+    <div class="log" id="logBox">
+      <div class="entry info">👋 지갑을 연결하고 결제를 시작하세요.</div>
+    </div>
+  </div>
+
+  <!-- 설정 -->
+  <div class="card">
+    <h2>⚙️ 컨트랙트 설정</h2>
+    <div class="form-group">
+      <label>KUSDC 컨트랙트 주소</label>
+      <input type="text" id="kusdcAddr" placeholder="0x..." />
+    </div>
+    <div class="form-group">
+      <label>CafePayment 컨트랙트 주소</label>
+      <input type="text" id="cafeAddr" placeholder="0x..." />
+    </div>
+    <button class="btn btn-ghost" style="margin-top:0;" onclick="saveAddresses()">저장</button>
+  </div>
+
+  <!-- 최근 결제 내역 -->
+  <div class="card">
+    <h2>📜 최근 결제 내역 <span class="badge green">Nodit</span></h2>
+    <div id="txHistory">
+      <div style="color:var(--muted);font-size:0.82rem;">결제 기록이 없습니다.</div>
+    </div>
+    <button class="btn btn-ghost" style="margin-top:0.75rem;" onclick="fetchHistory()">새로고침</button>
+  </div>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
+<script>
+// ── 상수 ──────────────────────────────────────────────
+const GIWA_CHAIN_ID = "0x164ce"; // 91342
+const GIWA_RPC = "https://giwa-sepolia.nodit.io/m_aARQc~-VfcQEjEbX8u8j345yLgf0Kn";
+const NODIT_API_KEY = "m_aARQc~-VfcQEjEbX8u8j345yLgf0Kn";
+
+const KUSDC_ABI = [
+  "function name() view returns (string)",
+  "function symbol() view returns (string)",
+  "function decimals() view returns (uint8)",
+  "function balanceOf(address) view returns (uint256)",
+  "function allowance(address,address) view returns (uint256)",
+  "function approve(address,uint256) returns (bool)",
+  "function transfer(address,uint256) returns (bool)",
+  "function transferFrom(address,address,uint256) returns (bool)",
+  "function mint(address,uint256)",
+  "function isMinter(address) view returns (bool)",
+  "function nonces(address) view returns (uint256)",
+  "function DOMAIN_SEPARATOR() view returns (bytes32)",
+  "function TRANSFER_WITH_AUTHORIZATION_TYPEHASH() view returns (bytes32)",
+  "function transferWithAuthorization(address,address,uint256,uint256,uint256,bytes32,uint8,bytes32,bytes32)",
+  "event Transfer(address indexed from, address indexed to, uint256 value)"
+];
+
+const CAFE_ABI = [
+  "function pay(address token, uint256 amount)",
+  "function payWithAuthorization(address,uint256,uint256,uint256,bytes32,uint8,bytes32,bytes32)",
+  "function feeRate() view returns (uint256)",
+  "function FEE_DENOMINATOR() view returns (uint256)",
+  "function merchant() view returns (address)",
+  "event Paid(address indexed payer, address indexed token, uint256 amount, uint256 fee, string method, uint256 timestamp)"
+];
+
+// ── 상태 ──────────────────────────────────────────────
+let provider, signer, kusdcContract, cafeContract;
+let userAddress = null;
+let selectedPrice = 4500;
+const DECIMALS = 6;
+
+// 로컬스토리지에서 주소 불러오기
+function loadSavedAddresses() {
+  const k = localStorage.getItem("kusdcAddress");
+  const c = localStorage.getItem("cafeAddress");
+  if (k) document.getElementById("kusdcAddr").value = k;
+  if (c) document.getElementById("cafeAddr").value = c;
+}
+loadSavedAddresses();
+
+function saveAddresses() {
+  const k = document.getElementById("kusdcAddr").value.trim();
+  const c = document.getElementById("cafeAddr").value.trim();
+  localStorage.setItem("kusdcAddress", k);
+  localStorage.setItem("cafeAddress", c);
+  log("주소 저장 완료", "ok");
+  if (userAddress) initContracts();
+}
+
+// ── 지갑 연결 ─────────────────────────────────────────
+async function connectWallet() {
+  if (!window.ethereum) return alert("MetaMask를 설치해주세요!");
+  try {
+    await window.ethereum.request({
+      method: "wallet_addEthereumChain",
+      params: [{
+        chainId: GIWA_CHAIN_ID,
+        chainName: "GIWA Sepolia",
+        nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+        rpcUrls: [GIWA_RPC],
+      }]
+    });
+    await window.ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: GIWA_CHAIN_ID }]
+    });
+
+    provider = new ethers.BrowserProvider(window.ethereum);
+    signer = await provider.getSigner();
+    userAddress = await signer.getAddress();
+
+    document.getElementById("connectBtn").style.display = "none";
+    document.getElementById("walletInfo").style.display = "flex";
+    document.getElementById("shortAddr").textContent =
+      userAddress.slice(0, 6) + "..." + userAddress.slice(-4);
+
+    log(`지갑 연결: ${userAddress}`, "ok");
+    await initContracts();
+  } catch (e) {
+    log("연결 실패: " + e.message, "err");
+  }
+}
+
+async function initContracts() {
+  const kusdcAddr = document.getElementById("kusdcAddr").value.trim();
+  const cafeAddr = document.getElementById("cafeAddr").value.trim();
+  if (!kusdcAddr || !cafeAddr) {
+    log("⚠️ 컨트랙트 주소를 입력하고 저장해주세요.", "err");
+    return;
+  }
+  kusdcContract = new ethers.Contract(kusdcAddr, KUSDC_ABI, signer);
+  cafeContract = new ethers.Contract(cafeAddr, CAFE_ABI, signer);
+
+  document.getElementById("btnPayA").disabled = false;
+  document.getElementById("btnPayB").disabled = false;
+
+  await refreshBalance();
+  log("컨트랙트 연결 완료", "ok");
+}
+
+// ── 잔액 갱신 ─────────────────────────────────────────
+async function refreshBalance() {
+  if (!kusdcContract || !userAddress) return;
+  try {
+    const bal = await kusdcContract.balanceOf(userAddress);
+    const formatted = ethers.formatUnits(bal, DECIMALS);
+    document.getElementById("myBalance").textContent = Number(formatted).toLocaleString();
+    document.getElementById("kusdcBalance").textContent =
+      Number(formatted).toLocaleString() + " KUSDC";
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+// ── 메뉴 선택 ─────────────────────────────────────────
+function selectMenu(el) {
+  document.querySelectorAll(".menu-item").forEach(m => m.classList.remove("selected"));
+  el.classList.add("selected");
+  selectedPrice = parseInt(el.dataset.price);
+
+  const fee = Math.floor(selectedPrice * 250 / 10000);
+  document.getElementById("selectedAmount").textContent = selectedPrice.toLocaleString();
+  document.getElementById("feeAmount").textContent = fee.toLocaleString();
+  document.getElementById("merchantAmount").textContent = (selectedPrice - fee).toLocaleString();
+}
+
+// ── 민팅 (테스트용) ───────────────────────────────────
+async function mintTokens() {
+  if (!kusdcContract) return log("지갑을 먼저 연결하세요.", "err");
+  try {
+    const amt = document.getElementById("mintAmount").value;
+    const amount = ethers.parseUnits(amt, DECIMALS);
+    log(`민팅 중... ${amt} KUSDC`);
+    const tx = await kusdcContract.mint(userAddress, amount);
+    log(`Tx 전송: ${tx.hash}`, "info");
+    await tx.wait();
+    log(`✅ ${amt} KUSDC 민팅 완료`, "ok");
+    await refreshBalance();
+  } catch (e) {
+    log("민팅 실패: " + (e.reason || e.message), "err");
+  }
+}
+
+// ── 방식 A: approve + pay ─────────────────────────────
+async function payMethodA() {
+  if (!kusdcContract || !cafeContract) return log("컨트랙트 주소를 설정하세요.", "err");
+  try {
+    const amount = ethers.parseUnits(selectedPrice.toString(), DECIMALS);
+    const cafeAddr = await cafeContract.getAddress();
+
+    // 1. approve
+    log(`[A] Approve 중... ${selectedPrice} KUSDC`);
+    const approveTx = await kusdcContract.approve(cafeAddr, amount);
+    await approveTx.wait();
+    log(`✅ Approve 완료`, "ok");
+
+    // 2. pay
+    log(`[A] Pay 중...`);
+    const payTx = await cafeContract.pay(await kusdcContract.getAddress(), amount);
+    log(`Tx: ${payTx.hash}`, "info");
+    await payTx.wait();
+    log(`✅ 결제 완료! ${selectedPrice} KUSDC`, "ok");
+    await refreshBalance();
+    await fetchHistory();
+  } catch (e) {
+    log("결제 실패: " + (e.reason || e.message), "err");
+  }
+}
+
+// ── 방식 B: ERC-3009 서명 결제 ────────────────────────
+async function payMethodB() {
+  if (!kusdcContract || !cafeContract) return log("컨트랙트 주소를 설정하세요.", "err");
+  try {
+    const amount = ethers.parseUnits(selectedPrice.toString(), DECIMALS);
+    const kusdcAddr = await kusdcContract.getAddress();
+    const cafeAddr = await cafeContract.getAddress();
+
+    const validAfter = 0;
+    const validBefore = Math.floor(Date.now() / 1000) + 3600; // 1시간
+    const nonce = ethers.hexlify(ethers.randomBytes(32));
+
+    log(`[B] ERC-3009 서명 생성 중...`);
+
+    // EIP-712 서명
+    const domain = {
+      name: "K-USDC",
+      version: "1",
+      chainId: 91342,
+      verifyingContract: kusdcAddr,
+    };
+    const types = {
+      TransferWithAuthorization: [
+        { name: "from", type: "address" },
+        { name: "to", type: "address" },
+        { name: "value", type: "uint256" },
+        { name: "validAfter", type: "uint256" },
+        { name: "validBefore", type: "uint256" },
+        { name: "nonce", type: "bytes32" },
+      ],
+    };
+    const message = {
+      from: userAddress,
+      to: cafeAddr,
+      value: amount,
+      validAfter,
+      validBefore,
+      nonce,
+    };
+
+    const signature = await signer.signTypedData(domain, types, message);
+    const { v, r, s } = ethers.Signature.from(signature);
+    log(`✅ 서명 완료`, "ok");
+
+    // pay
+    log(`[B] Pay 중...`);
+    const payTx = await cafeContract.payWithAuthorization(
+      kusdcAddr, amount, validAfter, validBefore, nonce, v, r, s
+    );
+    log(`Tx: ${payTx.hash}`, "info");
+    await payTx.wait();
+    log(`✅ ERC-3009 결제 완료! ${selectedPrice} KUSDC`, "ok");
+    await refreshBalance();
+    await fetchHistory();
+  } catch (e) {
+    log("결제 실패: " + (e.reason || e.message), "err");
+  }
+}
+
+// ── Nodit API로 결제 내역 조회 ────────────────────────
+async function fetchHistory() {
+  const cafeAddr = document.getElementById("cafeAddr").value.trim();
+  if (!cafeAddr || !provider) return;
+
+  try {
+    // MetaMask provider(Nodit RPC)를 통해 getLogs 호출 — CORS 우회
+    // Nodit은 최대 100,000 블록 범위 제한 → 최근 블록부터 조회
+    const latestBlock = await provider.getBlockNumber();
+    const fromBlock = Math.max(0, latestBlock - 99000);
+
+    const logs = await provider.getLogs({
+      address: cafeAddr,
+      topics: [ethers.id("Paid(address,address,uint256,uint256,string,uint256)")],
+      fromBlock,
+      toBlock: "latest"
+    });
+
+    const container = document.getElementById("txHistory");
+    if (logs.length === 0) {
+      container.innerHTML = `<div style="color:var(--muted);font-size:0.82rem;">결제 기록이 없습니다.</div>`;
+      return;
+    }
+
+    container.innerHTML = logs.slice(-5).reverse().map(l => {
+      const iface = new ethers.Interface(CAFE_ABI);
+      const parsed = iface.parseLog(l);
+      const amount = ethers.formatUnits(parsed.args.amount, 6);
+      const fee = ethers.formatUnits(parsed.args.fee, 6);
+      const method = parsed.args.method;
+      const ts = new Date(Number(parsed.args.timestamp) * 1000).toLocaleString("ko-KR");
+      const payer = parsed.args.payer.slice(0,6) + "..." + parsed.args.payer.slice(-4);
+      return `
+        <div class="tx-item">
+          <div class="tx-top">
+            <span>${payer}</span>
+            <span class="tx-amount">${Number(amount).toLocaleString()} KUSDC</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:2px;">
+            <span class="tx-method">${method} | 수수료 ${Number(fee).toLocaleString()} KUSDC</span>
+            <span style="color:var(--muted);font-size:0.72rem;">${ts}</span>
+          </div>
+          <div class="tx-hash">Tx: ${l.transactionHash}</div>
+        </div>`;
+    }).join("");
+  } catch (e) {
+    log("내역 조회 실패: " + e.message, "err");
+  }
+}
+
+// ── 유틸 ──────────────────────────────────────────────
+function log(msg, type = "") {
+  const box = document.getElementById("logBox");
+  const el = document.createElement("div");
+  el.className = "entry " + type;
+  const time = new Date().toLocaleTimeString("ko-KR");
+  el.textContent = `[${time}] ${msg}`;
+  box.appendChild(el);
+  box.scrollTop = box.scrollHeight;
+}
+
+// 초기화
+selectMenu(document.querySelector(".menu-item.selected"));
+</script>
+</body>
+</html>

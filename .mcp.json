@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "nodit": {
+      "command": "npx",
+      "args": ["-y", "dotenv-cli", "--", "npx", "@noditlabs/nodit-mcp-server@latest"]
+    }
+  }
+}
